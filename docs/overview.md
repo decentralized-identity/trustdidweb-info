@@ -30,88 +30,85 @@ as both `did:web` and `did:tdw`. These possibilities carter to a flexible and br
 corresponding trust requirements, addressing both those who are comfortable with the existing `did:web` 
 infrastructure to those seeking greater security assurances provided by `did:tdw`. 
 
----
-
-
 ### A `tl;dr` summary of `did:tdw`
 
-> 
-> #### The `did:tdw` Structure *(or, where is the `DID Doc`?)*
->
-> - `did:tdw` uses a so-called DID Log to publish cryptographic material and capabilities
-> - A `DID Log` is stored as `did.jsonl` file and represents a list of entries, each formatted as JSON line
-> - Every `DID Log Entry` describes a specific version of the corresponding DID via a JSON object
->    
->    - DID Log Entry := `{ "versionId": "", "versionTime": "", "parameters": {}, "state": {}, "proof" : [] }`  
->        - `versionId` -- a value that combines the version number (starting at `1` and incremented by one per version), followed by a literal dash `-`, and a hash of the entry, which links each entry to its predecessor in a ledger-like chain
->        - `versionTime` -- a string in UTC ISO8601 format 
->        - `parameters` -- a set of parameters that impact the processing of the current and future log entries
->            - method
->            - SCID
->            - updateKeys
->            - portable (optional)
->            - prerotation (optional)
->            - nextKeyHashes (optional)
->            - witnesses (optional)
->            - deactivated (when accurate)
->            - ttl (optional)
->       - `state` -- the current version of the DIDDoc
->       - `proof`-- a Data Integrity (DI) proof calculated across the entry, signed by a DID Controller authorized key to update the DIDDoc, and optionally, a set of witnesses that monitor the actions of the DID Controller
-> 
-> - The entire `DID Doc` is part of the "state" object *(in every JSON line of a DID Log Entry within the DID Log File)*
-> 
-> 
-> #### Creating the first DID Doc
->
-> 1. Create a preliminary log entry
->    - Create the JSON structure with the aforementioned properties and the following values:
->       - `versionId` := the literal string "`{SCID}`"
->       - `versionTime` := as asserted by the DID Controller, for example, `"2024-04-05T07:32:58Z"`
->       - `parameters` := as needed and defined by the DID Controller, for example:
->            - method := `did:tdw:0.4`
->            - SCID := the literal string "`{SCID}`" (here and wherever the calculated SCID value will eventually be placed)
->       - `state` := initial DID Doc with placeholders (the literal string "`{SCID}`") wherever the calculated SCID value will eventually be placed
->        - *`proof` := not set at this point. Will be set in step 4 below*
->
-> 2. Calculate the SCID
->    - SCID := `base58btc(multihash(JCS(preliminary log entry with placeholders), <hash algorithm>))`
->        - `JCS` := an implementation of the [[ref: JSON Canonicalization Scheme]] [[spec:rfc8785]]
->        - `multihash` := an implementation of the [[ref: multihash]] specification
->        - `<hash algorithm>` := one of the hash algorithms accepted by  `did:tdw` (see [parameters](#didtdw-did-method-parameters))
->        - `base58btc` := an implementation of the [[ref: base58btc]] function
->
-> 3. Update the preliminary log entry
->    - Replace all placeholders (the literal string `{SCID}`) with the calculated SCID value
->    - For the `versionId` start with `1` followed by a literal dash `-`
->
-> 4. Calculate the data integrity (DI) proof
->    - `proof` := a proof calculated across the *entire* DID Log Entry and signed with an updateKeys (and optionally by the witnesses). Values of required attributes include:
->        - type := eddsa-jcs-2022
->        - proofPurpose := `assertionMethod`
->
-> 5. Add the DI proof to the `proof` property of the DID Log Entry
->
-> #### Creating the first DID Log
->
-> - Turn the Log Entry into a JSON Line according the [[ref JSON Lines]] specification and add the line to the DID Log File for publication
->
-> #### Some considerations
->    - DID update
->       - The SCID is only calculated for the very first DID Log Entry and not for consecutive DID updates (i.e., new DID Log Entry)
->       - Instead of a SCID, each a new EntryHash is calculated in a similar way, for every consecutive DID Log Entry
->            - EntryHash := `base58btc(multihash(JCS(entry), <hash algorithm>))`
-> - Note: Both the SCID and the EntryHash are calculated *before* the DI proof calculation
-> - `did:tdw` uses the same DID-to-HTTPS transformation as `did:web`, so `did:tdw`'s  `did.jsonl` (JSON Lines) file is found in the same location as `did:web`'s `did.json` file, and supports an easy transition from `did:web` to gain the added benefits of `did:tdw`.
-> - For backwards compatibility, and for verifiers that "trust" `did:web`, a
+#### The `did:tdw` Structure *(or, Where is the `DID Doc`??)*
+
+- `did:tdw` uses a so-called DID Log to publish cryptographic material and capabilities
+- A `DID Log` is stored as `did.jsonl` file and represents a list of entries, each formatted as JSON line
+- Every `DID Log Entry` describes a specific version of the corresponding DID via a JSON object
+    - DID Log Entry := `{ "versionId": "", "versionTime": "", "parameters": {}, "state": {}, "proof" : [] }`  
+        - `versionId` -- a value that combines the version number (starting at `1` and incremented by one per version), followed by a literal dash `-`, and a hash of the entry, which links each entry to its predecessor in a ledger-like chain
+        - `versionTime` -- a string in UTC ISO8601 format 
+        - `parameters` -- a set of parameters that impact the processing of the current and future log entries
+            - method
+            - SCID
+            - updateKeys
+            - portable (optional)
+            - prerotation (optional)
+            - nextKeyHashes (optional)
+            - witnesses (optional)
+            - deactivated (when accurate)
+            - ttl (optional)
+       - `state` -- the current version of the DIDDoc
+       - `proof`-- a Data Integrity (DI) proof calculated across the entry, signed by a DID Controller authorized key to update the DIDDoc, and optionally, a set of witnesses that monitor the actions of the DID Controller
+
+- The entire `DID Doc` is part of the "state" object *(in every JSON line of a DID Log Entry within the DID Log File)*
+
+#### Creating the first DID Doc
+
+1. Create a preliminary log entry
+    - Create the JSON structure with the aforementioned properties and the following values:
+        - `versionId` := the literal string "`{SCID}`"
+        - `versionTime` := as asserted by the DID Controller, for example, `"2024-04-05T07:32:58Z"`
+        - `parameters` := as needed and defined by the DID Controller, for example:
+            - method := `did:tdw:0.4`
+            - SCID := the literal string "`{SCID}`" (here and wherever the calculated SCID value will eventually be placed)
+        - `state` := initial DID Doc with placeholders (the literal string "`{SCID}`") wherever the calculated SCID value will eventually be placed
+        - *`proof` := not set at this point. Will be set in step 4 below*
+
+2. Calculate the SCID
+    - SCID := `base58btc(multihash(JCS(preliminary log entry with placeholders), <hash algorithm>))`
+        - `JCS` := an implementation of the JSON Canonicalization Scheme ([RFC8785](https://www.rfc-editor.org/info/rfc8785))
+        - `multihash` := an implementation of the [multihash](https://multiformats.io/multihash/) specification
+        - `<hash algorithm>` := one of the hash algorithms accepted by  `did:tdw` (see [parameters](https://identity.foundation/trustdidweb/#didtdw-did-method-parameters) in the specification)
+        - `base58btc` := an implementation of the [base58btc](https://datatracker.ietf.org/doc/html/draft-msporny-base58-03) function
+
+3. Update the preliminary log entry
+    - Replace all placeholders (the literal string `{SCID}`) with the calculated SCID value.
+    - Calculate the `entryHash` as `entryHash := base58btc(multihash(JCS(entry), <hash algorithm>))`.
+    - Set the `versionId` to `1` (for version 1 of the DID), followed by a literal dash `-`, followed by the calculated `entryHash`.
+
+4. Calculate the data integrity (DI) proof
+    - `proof` := a proof calculated across the *entire* DID Log Entry and signed with an `updateKeys` (and optionally by witnesses). Values of required attributes include:
+        - `type` := eddsa-jcs-2022
+        - `proofPurpose` := `assertionMethod`
+
+5. Add the DI proof to the `proof` property of the DID Log Entry
+
+#### Creating the first DID Log
+
+- Turn the Log Entry into a JSON Line according the [JSON Lines](https://jsonlines.org/) specification and add the line to the DID Log File for publication
+
+#### Some considerations
+
+- When updating the DID to a new version:
+    - The SCID is only calculated when creating the first DID Log Entry, and
+      only used as the `versionId` when calculating the `entryHash` of that
+      first entry.
+    - For each a new log entry after the first, the `entryHash` is calculated
+      with its `versionId` set to the `versionId` *of the prior log entry*. This
+      results in all of the entries being cryptographically "chained" together
+      such that an alteration to an entry is evident in all succeeding entries.
+    - The `versionId` is the number of the version (incrementing by one per version), the literal `-`, followed by the calculated `entryHash` for the entry.
+    - *Note*: Both the SCID and the `entryHash` are calculated *before* the DI
+      proof calculation is added to the entry.
+- `did:tdw` uses the same DID-to-HTTPS transformation as `did:web`, so
+  `did:tdw`'s  `did.jsonl` (JSON Lines) file is found in the same location as
+  `did:web`'s `did.json` file, and supports an easy transition from `did:web` to
+  gain the added benefits of `did:tdw`.
+- For backwards compatibility, and for verifiers that "trust" `did:web`, a
 `did:tdw` can be trivially modified and published in parallel to a `did:web`
 DID. For resolvers that want more assurance, `did:tdw` provides a way to "trust
 did:web" (or to enable a "trusted web" if you say it fast) enabled by the
 features listed in the [introduction](./README.md).
-   
-----
-
-  ::: warning
-    A resolver settling for just the `did:web` version of the DID does not get the
-    verifiability of the `did:tdw` log.
-  :::
-
